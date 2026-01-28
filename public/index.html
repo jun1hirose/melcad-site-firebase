@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>MELCAD友の会2026_0128</title>
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+        integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC"
+        crossorigin="anonymous"/>
+
+  <!-- ===== Theme（深いスレート＋青アクセント） ===== -->
+  <style>
+    :root{
+      --bg:#0f1117; --surface:#151a21; --surface-2:#1b212a;
+      --text:#e8ecf2; --muted:#9aa4b2; --border:#2a3240;
+      --accent:#64b3ff; --accent-contrast:#0b1020; --link:var(--accent);
+      --maxw:1100px;
+    }
+    body{background:var(--bg);color:var(--text);}
+    a{color:var(--link);} a:hover{opacity:.9;}
+    .container{max-width:var(--maxw);}
+    hr,.border,.accordion-item{border-color:var(--border)!important;}
+
+    header{position:relative;}
+    header img{width:100%;height:auto;display:block;}
+    header::after{
+      content:"";position:absolute;inset:0;
+      background:linear-gradient(180deg,rgba(0,0,0,.45),rgba(0,0,0,0) 30%,rgba(0,0,0,.55) 100%);
+      pointer-events:none;
+    }
+    #ttl1{position:absolute;left:1rem;bottom:.8rem;margin:0;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.6);}
+    .navbar{background:linear-gradient(90deg,var(--surface-2),var(--surface));border:1px solid var(--border);}
+    .navbar .navbar-brand{color:var(--text);}
+    .navbar .nav-link{color:var(--muted);} .navbar .nav-link:hover{color:var(--link);}
+    .accordion-item{background:var(--surface);}
+    .accordion-button{background:var(--surface);color:var(--text);border-bottom:1px solid var(--border);}
+    .accordion-button:not(.collapsed){
+      background:var(--surface-2);
+      box-shadow: inset 0 -1px 0 var(--border), 0 0 0 .15rem rgba(100,179,255,.35);
+    }
+    .accordion-button:focus{box-shadow:0 0 0 .2rem rgba(100,179,255,.45);}
+    .accordion-body{background:var(--surface);color:var(--text);}
+    footer{background:var(--surface-2)!important;color:var(--muted);border-top:1px solid var(--border);}
+    .event-title{scroll-margin-top:6rem;position:relative;display:inline-block;padding-left:.75rem;}
+    .event-title::before{content:"";position:absolute;left:0;top:.2em;bottom:.2em;width:.28rem;border-radius:2px;background:var(--accent);}
+    .status{color:var(--muted);text-align:center;padding:.75rem 0;white-space:pre-wrap;}
+  </style>
+</head>
+
+<body class="container">
+  <!-- Header -->
+  <header class="mb-2">
+    <img id="headerImage" src="img/h1_mechanics_cad.jpg" alt="MELCAD友の会">
+    <h1 id="ttl1" class="text-break">MELCAD友の会</h1>
+  </header>
+
+  <!-- Nav -->
+  <nav class="navbar navbar-expand-lg navbar-dark mb-3">
+    <a class="mx-2 navbar-brand" href="#">お知らせ（新着順）</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+            aria-controls="navbarNav" aria-expanded="false" aria-label="トグル">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul id="navList" class="navbar-nav ms-auto"></ul>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <main id="content">
+    <div id="status" class="status">フォルダを探索中...</div>
+    <div id="mainAccordion" class="accordion"></div>
+  </main>
+
+  <footer class="fixed-bottom text-center py-1">
+    <small>&copy; MELCAD友の会. All rights reserved.</small>
+  </footer>
+
+  <!-- Bootstrap bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+          crossorigin="anonymous"></script>
+
+  <!-- ===== App Script（APIキーのみ／Lazy Load／本文は自前プロキシ経由） ===== -->
+  <script>
+    /* ================= 設定 ================= */
+    const CONFIG = {
+      apiKey:       'AIzaSyDyS860SraB3Qv6CVBrWPLJI28DZbcvGys',     // ★実キーを入れる
+      rootFolderId: '1r9PCGwWZUjrbawEWTo7r4auk0xM5a-oB',    // ★Driveルート
+      imgFolderName:'img',
+      orderBy:      'name desc',                   // 新着順: フォルダ名降順（例 2025_0812 > 2024_0623）
+      albumBase:    'https://melcad-com.an.r.appspot.com/album.html?',
+      slideshowBase:'https://melcad-com.an.r.appspot.com/sldshowGallery.html?',
+      proxyBase:    '/api/drive',                  // ★本文取得用の薄いプロキシ
+      stopOn403:    true                           // 403なら全体停止（falseで該当イベントのみエラー表示）
+    };
+
+    /* =============== ユーティリティ =============== */
+    const byId = id => document.getElementById(id);
+    const setStatus = msg => { const s=byId('status'); if(s) s.textContent = msg??''; };
+    const hideStatus = () => { const s=byId('status'); if(s) s.style.display='none'; };
+    function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+    function nl2brEscaped(s){return escapeHtml(String(s)).replace(/\r?\n/g,'<br>');}
+    function toGuideHtml(value){
+      if(Array.isArray(value)) return value.map(p=>`<p>${escapeHtml(String(p))}</p>`).join('');
+      if(typeof value==='string'){
+        const s=value.trim();
+        if(/[<>&]/.test(s)) return s;              // HTMLらしきものは素通し（自主管理前提）
+        return `<p>${nl2brEscaped(s)}</p>`;        // プレーン改行→<br>
+      }
+      return '';
+    }
+    function tryFormatDateFromEventId(id){
+      const m=/^(\d{4})_(\d{2})(\d{2})$/.exec(id);
+      return m?`${m[1]}/${m[2]}/${m[3]}`:'';
+    }
+    function qs(url, params){ const u=new URL(url, location.origin); Object.entries(params||{}).forEach(([k,v])=>u.searchParams.set(k,v)); return u; }
+
+    /* ========== Drive REST（一覧は直叩き／本文はプロキシ） ========== */
+    async function driveList(params){
+      const url = new URL('https://www.googleapis.com/drive/v3/files');
+      Object.entries({
+        key: CONFIG.apiKey,
+        fields: 'files(id,name,description,mimeType,createdTime,modifiedTime)',
+        supportsAllDrives: 'true',
+        includeItemsFromAllDrives: 'true',
+        ...params
+      }).forEach(([k,v])=>url.searchParams.set(k,v));
+      const res = await fetch(url.toString());
+      if (res.status===403) throw Object.assign(new Error('DRIVE_403_FORBIDDEN(list)'), { code:403 });
+      if (!res.ok) throw new Error('DRIVE_'+res.status);
+      return res.json();
+    }
+    async function driveGetText_viaProxy(fileId){
+      const u = qs(CONFIG.proxyBase, { fileId });
+      const r = await fetch(u.toString());
+      if (r.status===403) throw Object.assign(new Error('DRIVE_403_FORBIDDEN(media)'), { code:403 });
+      if (!r.ok) throw new Error('PROXY_'+r.status);
+      return r.text();
+    }
+    async function driveExportText_viaProxy(fileId, mimeType='text/plain'){
+      const u = qs(CONFIG.proxyBase, { fileId, exportMime: mimeType });
+      const r = await fetch(u.toString());
+      if (r.status===403) throw Object.assign(new Error('DRIVE_403_FORBIDDEN(export)'), { code:403 });
+      if (!r.ok) throw new Error('PROXY_'+r.status);
+      return r.text();
+    }
+
+    async function getFolderIdExact(parentId, folderName){
+      const q = `'${parentId}' in parents and name='${folderName.replace(/'/g,"\\'")}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+      const {files=[]} = await driveList({ q, orderBy:'name' });
+      return files[0]?.id || '';
+    }
+    async function listSubfolders(parentId, orderBy='name desc'){
+      const q = `'${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+      const {files=[]} = await driveList({ q, orderBy });
+      return files;
+    }
+    async function findInfoFile(parentId){
+      const q = `'${parentId}' in parents and name='info.json' and trashed=false`;
+      const {files=[]} = await driveList({ q, orderBy:'name' });
+      return files[0] || null;
+    }
+    async function readInfoText(file){
+      let text='';
+      if(file.mimeType?.startsWith('application/vnd.google-apps.')){
+        // Googleドキュメント → テキストでexport
+        text = await driveExportText_viaProxy(file.id, 'text/plain');
+      }else{
+        text = await driveGetText_viaProxy(file.id);
+      }
+      return text.replace(/^\uFEFF/,'').trim(); // BOM除去
+    }
+
+    /* ========== 画面生成（Lazy Load） ========== */
+    function addNavItem(eventId, title){
+      const li=document.createElement('li'); li.className='nav-item';
+      const a=document.createElement('a'); a.className='nav-link'; a.href=`#${eventId}`; a.textContent=title;
+      li.appendChild(a); byId('navList').appendChild(li);
+    }
+    function addEventTitle(eventId, displayTitle){
+      const h3=document.createElement('h3'); h3.className='event-title mt-4 mx-3 mb-2 text-center';
+      h3.id=eventId; h3.textContent=displayTitle; byId('mainAccordion').appendChild(h3);
+    }
+    function addAccordionItem({ eventId, kind, title, bodyHtml }) {
+      const acc = byId('mainAccordion');
+      const item = document.createElement('div'); item.className = 'accordion-item';
+      const hid = `hdr-${kind}-${eventId}`;
+      const cid = `col-${kind}-${eventId}`;
+      const cnt = `cnt-${kind}-${eventId}`;
+      item.innerHTML = `
+        <h2 class="accordion-header" id="${hid}">
+          <button class="accordion-button custom-font-size collapsed" type="button"
+                  data-bs-toggle="collapse" data-bs-target="#${cid}"
+                  aria-expanded="false" aria-controls="${cid}">
+            ${escapeHtml(title)}
+          </button>
+        </h2>
+        <div id="${cid}" class="accordion-collapse collapse" data-bs-parent="#mainAccordion" aria-labelledby="${hid}">
+          <div class="accordion-body"><div class="h5" id="${cnt}">${bodyHtml || ''}</div></div>
+        </div>`;
+      acc.appendChild(item);
+      return { collapseId: cid, contentId: cnt };
+    }
+
+    const EVENT_CACHE = new Map();  // eventId -> { loaded, info, title, fileId, modifiedTime }
+    const SPINNER = `<div class="d-flex align-items-center">
+      <div class="spinner-border spinner-border-sm me-2" role="status"></div>読み込み中...</div>`;
+
+    async function loadEvent(folder) {
+      const eventId = folder.name;
+      const cached = EVENT_CACHE.get(eventId);
+      if (cached?.loaded) return cached;
+
+      const g = byId(`cnt-guide-${eventId}`);
+      const n = byId(`cnt-near-${eventId}`);
+      if (g) g.innerHTML = SPINNER;
+      if (n) n.innerHTML = SPINNER;
+
+      let infoFile;
+      try {
+        infoFile = await findInfoFile(folder.id);
+        if (!infoFile) throw new Error(`info.json not found in ${eventId}`);
+      } catch (e) {
+        if (CONFIG.stopOn403 && e.code === 403) throw e;
+        if (g) g.textContent = `エラー: ${e.message}`;
+        if (n) n.textContent = `エラー: ${e.message}`;
+        throw e;
+      }
+
+      let text;
+      try {
+        text = await readInfoText(infoFile);
+      } catch (e) {
+        if (CONFIG.stopOn403 && e.code === 403) throw e;
+        if (g) g.textContent = `エラー: ${e.message}`;
+        if (n) n.textContent = `エラー: ${e.message}`;
+        throw e;
+      }
+
+      let info;
+      try {
+        info = JSON.parse(text);
+      } catch (e) {
+        if (g) g.textContent = 'エラー: info.json が不正なJSONです';
+        if (n) n.textContent = 'エラー: info.json が不正なJSONです';
+        throw e;
+      }
+
+      const titleCap = (typeof info['タイトルキャプション'] === 'string' && info['タイトルキャプション'].trim())
+        ? info['タイトルキャプション'].trim()
+        : (() => { const d = tryFormatDateFromEventId(eventId); return `${eventId}${d ? `（${d}）` : ''}`; })();
+
+      const headingEl = document.querySelector(`h3#${CSS.escape(eventId)}`);
+      if (headingEl) headingEl.textContent = titleCap;
+      const navLink = Array.from(byId('navList').querySelectorAll('a'))
+                      .find(a => a.getAttribute('href') === `#${eventId}`);
+      if (navLink) navLink.textContent = titleCap;
+
+      if (g) g.innerHTML = toGuideHtml(info['ご案内']) || '（記載なし）';
+      if (n) n.innerHTML  = toGuideHtml(info['近況'])   || '（記載なし）';
+
+      const cacheObj = { loaded:true, info, title:titleCap, fileId:infoFile.id, modifiedTime:infoFile.modifiedTime };
+      EVENT_CACHE.set(eventId, cacheObj);
+      return cacheObj;
+    }
+
+    async function prefetch(folders, n = 2) {
+      await Promise.allSettled(folders.slice(0, n).map(f => loadEvent(f).catch(() => {})));
+    }
+
+    /* ========== メイン ========== */
+    (async function main(){
+      try{
+        // 1) img ルート
+        setStatus('フォルダを探索中...');
+        const imgRootId = await getFolderIdExact(CONFIG.rootFolderId, CONFIG.imgFolderName);
+        if(!imgRootId){ setStatus('img フォルダが見つかりません'); return; }
+
+        // 2) イベント一覧（新着順）
+        const folders = await listSubfolders(imgRootId, CONFIG.orderBy);
+        if(!folders.length){ setStatus('イベントフォルダが見つかりません'); return; }
+
+        // 3) 骨組みだけ即表示（タイトルは一旦フォルダ名で）
+        const nav = byId('navList'); nav.innerHTML = '';
+        const acc = byId('mainAccordion'); acc.innerHTML = '';
+        for (const f of folders) {
+          const eventId = f.name;
+          const fallbackTitle = (()=>{ const d=tryFormatDateFromEventId(eventId); return `${eventId}${d?`（${d}）`:''}`; })();
+
+          // ナビ
+          const li = document.createElement('li'); li.className = 'nav-item';
+          const a = document.createElement('a'); a.className = 'nav-link'; a.href = `#${eventId}`; a.textContent = fallbackTitle;
+          li.appendChild(a); nav.appendChild(li);
+
+          // 見出し
+          addEventTitle(eventId, fallbackTitle);
+
+          // 遅延ロード項目
+          const { collapseId: guideCol } = addAccordionItem({ eventId, kind:'guide', title:'ご案内',     bodyHtml:'（開くと読み込みます）' });
+          const { collapseId: nearCol  } = addAccordionItem({ eventId, kind:'near',  title:'メンバー近況', bodyHtml:'（開くと読み込みます）' });
+
+          // ギャラリ（即）
+          const galleryHtml = `
+            <p class="mb-2"><a href="${CONFIG.albumBase}${encodeURIComponent(eventId)}" target="_blank" rel="noopener">アルバムへのリンク</a></p>
+            <p class="mb-2"><a href="${CONFIG.slideshowBase}${encodeURIComponent(eventId)}" target="_blank" rel="noopener">スライドショーへのリンク</a></p>`;
+          addAccordionItem({ eventId, kind:'gallery', title:'ギャラリ', bodyHtml: galleryHtml });
+
+          // 初回だけロード
+          const handler = async () => {
+            try { await loadEvent(f); }
+            catch (e) {
+              if (e.code === 403 && CONFIG.stopOn403) {
+                setStatus(
+                  'エラー: Google Drive から 403 Forbidden が返されました。\n' +
+                  '・info.json を「リンクを知っている全員：閲覧可」に\n' +
+                  '・APIキーのHTTPリファラーに本番/localhostを追加\n' +
+                  'をご確認ください。'
+                );
+              }
+            }
+          };
+          document.getElementById(guideCol)?.addEventListener('show.bs.collapse', handler, { once:true });
+          document.getElementById(nearCol )?.addEventListener('show.bs.collapse', handler, { once:true });
+        }
+
+        // 4) 新着上位を少量先読み（体感改善）
+        prefetch(folders, 2).finally(hideStatus);
+      }catch(err){
+        console.error(err);
+        setStatus(`エラー: ${err?.message||err}`);
+      }
+    })();
+  </script>
+</body>
+</html>

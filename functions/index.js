@@ -7,18 +7,18 @@ const DRIVE_API_KEY = defineSecret("DRIVE_API_KEY");
 const app = express();
 const api = express.Router();
 
-// CORS & OPTIONS
 function setCORS(res) {
   res.set("Access-Control-Allow-Origin", "*");
   res.set("Access-Control-Allow-Methods", "GET,OPTIONS");
   res.set("Access-Control-Allow-Headers", "Content-Type");
 }
-api.options("/drive", (req, res) => {
+
+// OPTIONS（/drive と /api/drive の両方に効くように）
+api.options(["/drive", "/api/drive"], (req, res) => {
   setCORS(res);
   return res.status(204).end();
 });
 
-// Timeout fetch
 async function fetchWithTimeout(url, {timeoutMs = 10000, ...opts} = {}) {
   const ac = new AbortController();
   const t = setTimeout(() => ac.abort(), timeoutMs);
@@ -29,19 +29,19 @@ async function fetchWithTimeout(url, {timeoutMs = 10000, ...opts} = {}) {
   }
 }
 
-// Health
-api.get("/health", (req, res) => {
+// health（/health と /api/health の両方）
+api.get(["/health", "/api/health"], (req, res) => {
   setCORS(res);
-  res.status(200).json({ok: true});
+  res.status(200).json({ok: true, path: req.path});
 });
 
-// Drive proxy
-api.get("/drive", async (req, res) => {
+// drive（/drive と /api/drive の両方）
+api.get(["/drive", "/api/drive"], async (req, res) => {
   setCORS(res);
   try {
     const {fileId, exportMime} = req.query;
-
     const apiKey = DRIVE_API_KEY.value();
+
     if (!fileId) return res.status(400).json({error: "fileId is required"});
     if (!apiKey) return res.status(500).json({error: "DRIVE_API_KEY is not set"});
 
@@ -70,8 +70,7 @@ api.get("/drive", async (req, res) => {
   }
 });
 
-app.use("/api", api);
+// ルータをアプリに付ける（rootでも /api でも動く）
+app.use("/", api);
 
-// Functions v2: secrets は第2引数で指定
 exports.api = onRequest({secrets: [DRIVE_API_KEY]}, app);
-
