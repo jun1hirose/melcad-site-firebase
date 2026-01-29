@@ -11,7 +11,6 @@
         integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC"
         crossorigin="anonymous"/>
 
-  <!-- ===== Theme（深いスレート＋青アクセント） ===== -->
   <style>
     :root{
       --bg:#0f1117; --surface:#151a21; --surface-2:#1b212a;
@@ -51,15 +50,13 @@
 </head>
 
 <body class="container">
-  <!-- Header -->
   <header class="mb-2">
     <img id="headerImage" src="img/h1_mechanics_cad.jpg" alt="MELCAD友の会">
     <h1 id="ttl1" class="text-break">MELCAD友の会（2026_0128）</h1>
   </header>
 
-  <!-- Nav -->
   <nav class="navbar navbar-expand-lg navbar-dark mb-3">
-    <a id="navBrand" class="mx-2 navbar-brand" href="#">お知らせ（新着順0128）</a>
+    <a id="navBrand" class="mx-2 navbar-brand" href="#">お知らせ（新着順）</a>
     <button clas="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
             aria-controls="navbarNav" aria-expanded="false" aria-label="トグル">
       <span class="navbar-toggler-icon"></span>
@@ -69,7 +66,6 @@
     </div>
   </nav>
 
-  <!-- Main -->
   <main id="content">
     <div id="status" class="status">フォルダを探索中...</div>
     <div id="mainAccordion" class="accordion"></div>
@@ -79,38 +75,41 @@
     <small>&copy; MELCAD友の会. All rights reserved.</small>
   </footer>
 
-  <!-- Bootstrap bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
           integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
           crossorigin="anonymous"></script>
 
-  <!-- ===== App Script（APIキーのみ／Lazy Load／本文は自前プロキシ経由） ===== -->
   <script>
     /* ================= 設定 ================= */
     const CONFIG = {
-      apiKey:       'AIzaSyDyS860SraB3Qv6CVBrWPLJI28DZbcvGys',     // ★実キーを入れる
-      rootFolderId: '1r9PCGwWZUjrbawEWTo7r4auk0xM5a-oB',    // ★Driveルート
+      rootFolderId: '1r9PCGwWZUjrbawEWTo7r4auk0xM5a-oB',   // Driveルート
       imgFolderName:'img',
-      orderBy:      'name desc',                   // 新着順: フォルダ名降順（例 2025_0812 > 2024_0623）
-      albumBase:    '/album.html?',
-      slideshowBase:'/sldshowGallery.html?',
-      proxyBase:    '/api/drive',                  // ★本文取得用の薄いプロキシ
-      stopOn403:    true                           // 403なら全体停止（falseで該当イベントのみエラー表示）
+      orderBy:      'name desc',
+      albumBase:    'https://melcad-com.an.r.appspot.com/album.html?',
+      slideshowBase:'https://melcad-com.an.r.appspot.com/sldshowGallery.html?',
+      proxyDrive:   '/api/drive',       // media/export
+      proxyList:    '/api/driveList',   // files.list
+      stopOn403:    true
     };
 
     /* =============== ユーティリティ =============== */
     const byId = id => document.getElementById(id);
-    const setStatus = msg => { const s=byId('status'); if(s) s.textContent = msg??''; };
+    const setStatus = msg => { const s=byId('status'); if(s) s.textContent = msg ?? ''; };
     const hideStatus = () => { const s=byId('status'); if(s) s.style.display='none'; };
     const BRAND_DEFAULT = (byId('navBrand')?.textContent ?? '').trim();
-    function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
-    function nl2brEscaped(s){return escapeHtml(String(s)).replace(/\r?\n/g,'<br>');}
+
+    function escapeHtml(s){
+      return String(s)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+    function nl2brEscaped(s){ return escapeHtml(String(s)).replace(/\r?\n/g,'<br>'); }
     function toGuideHtml(value){
       if(Array.isArray(value)) return value.map(p=>`<p>${escapeHtml(String(p))}</p>`).join('');
       if(typeof value==='string'){
         const s=value.trim();
-        if(/[<>&]/.test(s)) return s;              // HTMLらしきものは素通し（自主管理前提）
-        return `<p>${nl2brEscaped(s)}</p>`;        // プレーン改行→<br>
+        if(/[<>&]/.test(s)) return s;
+        return `<p>${nl2brEscaped(s)}</p>`;
       }
       return '';
     }
@@ -118,32 +117,37 @@
       const m=/^(\d{4})_(\d{2})(\d{2})$/.exec(id);
       return m?`${m[1]}/${m[2]}/${m[3]}`:'';
     }
-    function qs(url, params){ const u=new URL(url, location.origin); Object.entries(params||{}).forEach(([k,v])=>u.searchParams.set(k,v)); return u; }
+    function qs(url, params){
+      const u = new URL(url, location.origin);
+      Object.entries(params||{}).forEach(([k,v])=>u.searchParams.set(k,v));
+      return u;
+    }
+    function fallbackTitleFor(eventId){
+      const d = tryFormatDateFromEventId(eventId);
+      return `${eventId}${d?`（${d}）`:''}`;
+    }
 
-    /* ========== Drive REST（一覧は直叩き／本文はプロキシ） ========== */
+    /* ========== Drive（全部 Functions 経由） ========== */
     async function driveList(params){
-      const url = new URL('https://www.googleapis.com/drive/v3/files');
-      Object.entries({
-        key: CONFIG.apiKey,
-        fields: 'files(id,name,description,mimeType,createdTime,modifiedTime)',
-        supportsAllDrives: 'true',
-        includeItemsFromAllDrives: 'true',
+      const url = qs(CONFIG.proxyList, {
+        // functions側で supportsAllDrives / includeItemsFromAllDrives は強制で付けています
+        fields: 'files(id,name,description,mimeType,createdTime,modifiedTime),nextPageToken',
         ...params
-      }).forEach(([k,v])=>url.searchParams.set(k,v));
+      });
       const res = await fetch(url.toString());
       if (res.status===403) throw Object.assign(new Error('DRIVE_403_FORBIDDEN(list)'), { code:403 });
-      if (!res.ok) throw new Error('DRIVE_'+res.status);
+      if (!res.ok) throw new Error('PROXYLIST_'+res.status);
       return res.json();
     }
     async function driveGetText_viaProxy(fileId){
-      const u = qs(CONFIG.proxyBase, { fileId });
+      const u = qs(CONFIG.proxyDrive, { fileId });
       const r = await fetch(u.toString());
       if (r.status===403) throw Object.assign(new Error('DRIVE_403_FORBIDDEN(media)'), { code:403 });
       if (!r.ok) throw new Error('PROXY_'+r.status);
       return r.text();
     }
     async function driveExportText_viaProxy(fileId, mimeType='text/plain'){
-      const u = qs(CONFIG.proxyBase, { fileId, exportMime: mimeType });
+      const u = qs(CONFIG.proxyDrive, { fileId, exportMime: mimeType });
       const r = await fetch(u.toString());
       if (r.status===403) throw Object.assign(new Error('DRIVE_403_FORBIDDEN(export)'), { code:403 });
       if (!r.ok) throw new Error('PROXY_'+r.status);
@@ -168,23 +172,20 @@
     async function readInfoText(file){
       let text='';
       if(file.mimeType?.startsWith('application/vnd.google-apps.')){
-        // Googleドキュメント → テキストでexport
         text = await driveExportText_viaProxy(file.id, 'text/plain');
       }else{
         text = await driveGetText_viaProxy(file.id);
       }
-      return text.replace(/^\uFEFF/,'').trim(); // BOM除去
+      return text.replace(/^\uFEFF/,'').trim();
     }
 
-    /* ========== 画面生成（Lazy Load） ========== */
-    function addNavItem(eventId, title){
-      const li=document.createElement('li'); li.className='nav-item';
-      const a=document.createElement('a'); a.className='nav-link'; a.href=`#${eventId}`; a.textContent=title;
-      li.appendChild(a); byId('navList').appendChild(li);
-    }
+    /* ========== 画面生成 ========== */
     function addEventTitle(eventId, displayTitle){
-      const h3=document.createElement('h3'); h3.className='event-title mt-4 mx-3 mb-2 text-center';
-      h3.id=eventId; h3.textContent=displayTitle; byId('mainAccordion').appendChild(h3);
+      const h3=document.createElement('h3');
+      h3.className='event-title mt-4 mx-3 mb-2 text-center';
+      h3.id=eventId;
+      h3.textContent=displayTitle;
+      byId('mainAccordion').appendChild(h3);
     }
     function addAccordionItem({ eventId, kind, title, bodyHtml }) {
       const acc = byId('mainAccordion');
@@ -207,95 +208,127 @@
       return { collapseId: cid, contentId: cnt };
     }
 
-    const EVENT_CACHE = new Map();  // eventId -> { loaded, info, title, fileId, modifiedTime }
+    const EVENT_CACHE = new Map(); // eventId -> { titleLoaded, bodyLoaded, info, title, fileId, modifiedTime }
     const SPINNER = `<div class="d-flex align-items-center">
       <div class="spinner-border spinner-border-sm me-2" role="status"></div>読み込み中...</div>`;
 
-    async function loadEvent(folder) {
+    function updateTitleUI(eventId, titleCap) {
+      const headingEl = document.querySelector(`h3#${CSS.escape(eventId)}`);
+      if (headingEl) headingEl.textContent = titleCap;
+
+      const nav = byId('navList');
+      const navLink = nav
+        ? Array.from(nav.querySelectorAll('a')).find(a => a.getAttribute('href') === `#${eventId}`)
+        : null;
+      if (navLink) navLink.textContent = titleCap;
+    }
+
+    async function ensureInfo(folder) {
       const eventId = folder.name;
       const cached = EVENT_CACHE.get(eventId);
-      if (cached?.loaded) return cached;
+      if (cached?.info) return cached;
+
+      const infoFile = await findInfoFile(folder.id);
+      if (!infoFile) throw new Error(`info.json not found in ${eventId}`);
+
+      const text = await readInfoText(infoFile);
+
+      let info;
+      try { info = JSON.parse(text); }
+      catch { throw new Error('info.json が不正なJSONです'); }
+
+      const titleCap =
+        (typeof info['タイトルキャプション'] === 'string' && info['タイトルキャプション'].trim())
+          ? info['タイトルキャプション'].trim()
+          : fallbackTitleFor(eventId);
+
+      const obj = {
+        titleLoaded: false,
+        bodyLoaded: false,
+        info,
+        title: titleCap,
+        fileId: infoFile.id,
+        modifiedTime: infoFile.modifiedTime,
+      };
+      EVENT_CACHE.set(eventId, obj);
+      return obj;
+    }
+
+    async function loadTitle(folder) {
+      const eventId = folder.name;
+      const cached = EVENT_CACHE.get(eventId);
+      if (cached?.titleLoaded) return cached;
+
+      const obj = await ensureInfo(folder);
+      updateTitleUI(eventId, obj.title);
+      obj.titleLoaded = true;
+      EVENT_CACHE.set(eventId, obj);
+      return obj;
+    }
+
+    async function loadBody(folder) {
+      const eventId = folder.name;
+      const cached = EVENT_CACHE.get(eventId);
+      if (cached?.bodyLoaded) return cached;
 
       const g = byId(`cnt-guide-${eventId}`);
       const n = byId(`cnt-near-${eventId}`);
       if (g) g.innerHTML = SPINNER;
       if (n) n.innerHTML = SPINNER;
 
-      let infoFile;
-      try {
-        infoFile = await findInfoFile(folder.id);
-        if (!infoFile) throw new Error(`info.json not found in ${eventId}`);
-      } catch (e) {
-        if (CONFIG.stopOn403 && e.code === 403) throw e;
-        if (g) g.textContent = `エラー: ${e.message}`;
-        if (n) n.textContent = `エラー: ${e.message}`;
-        throw e;
+      const obj = await ensureInfo(folder);
+
+      if (!obj.titleLoaded) {
+        updateTitleUI(eventId, obj.title);
+        obj.titleLoaded = true;
       }
 
-      let text;
-      try {
-        text = await readInfoText(infoFile);
-      } catch (e) {
-        if (CONFIG.stopOn403 && e.code === 403) throw e;
-        if (g) g.textContent = `エラー: ${e.message}`;
-        if (n) n.textContent = `エラー: ${e.message}`;
-        throw e;
-      }
+      if (g) g.innerHTML = toGuideHtml(obj.info['ご案内']) || '（記載なし）';
+      if (n) n.innerHTML = toGuideHtml(obj.info['近況']) || '（記載なし）';
 
-      let info;
-      try {
-        info = JSON.parse(text);
-      } catch (e) {
-        if (g) g.textContent = 'エラー: info.json が不正なJSONです';
-        if (n) n.textContent = 'エラー: info.json が不正なJSONです';
-        throw e;
-      }
-
-      const titleCap = (typeof info['タイトルキャプション'] === 'string' && info['タイトルキャプション'].trim())
-        ? info['タイトルキャプション'].trim()
-        : (() => { const d = tryFormatDateFromEventId(eventId); return `${eventId}${d ? `（${d}）` : ''}`; })();
-
-      const headingEl = document.querySelector(`h3#${CSS.escape(eventId)}`);
-      if (headingEl) headingEl.textContent = titleCap;
-      const navLink = Array.from(byId('navList').querySelectorAll('a'))
-                      .find(a => a.getAttribute('href') === `#${eventId}`);
-      if (navLink) navLink.textContent = titleCap;
-
-      if (g) g.innerHTML = toGuideHtml(info['ご案内']) || '（記載なし）';
-      if (n) n.innerHTML  = toGuideHtml(info['近況'])   || '（記載なし）';
-
-      const cacheObj = { loaded:true, info, title:titleCap, fileId:infoFile.id, modifiedTime:infoFile.modifiedTime };
-      EVENT_CACHE.set(eventId, cacheObj);
-      return cacheObj;
+      obj.bodyLoaded = true;
+      EVENT_CACHE.set(eventId, obj);
+      return obj;
     }
 
-    async function prefetch(folders, n = 2) {
-      await Promise.allSettled(folders.slice(0, n).map(f => loadEvent(f).catch(() => {})));
+    async function prefetchTitles(folders, n = 5) {
+      await Promise.allSettled(folders.slice(0, n).map(f => loadTitle(f).catch(() => {})));
     }
 
     /* ========== メイン ========== */
     (async function main(){
       try{
-        // 1) img ルート
         setStatus('フォルダを探索中...');
         const imgRootId = await getFolderIdExact(CONFIG.rootFolderId, CONFIG.imgFolderName);
         if(!imgRootId){ setStatus('img フォルダが見つかりません'); return; }
 
-        // 2) イベント一覧（新着順）
         const folders = await listSubfolders(imgRootId, CONFIG.orderBy);
         if(!folders.length){ setStatus('イベントフォルダが見つかりません'); return; }
 
-        // 3) 骨組みだけ即表示（タイトルは一旦フォルダ名で）
         const nav = byId('navList'); nav.innerHTML = '';
         const acc = byId('mainAccordion'); acc.innerHTML = '';
         const brandEl = byId('navBrand');
+
         const firstEventId = folders[0]?.name || '';
-        const firstFallbackTitle = firstEventId
-          ? (()=>{ const d=tryFormatDateFromEventId(firstEventId); return `${firstEventId}${d?`（${d}）`:''}`; })()
-          : '';
+        const firstFallbackTitle = firstEventId ? fallbackTitleFor(firstEventId) : '';
+
+        const titleObserver = ('IntersectionObserver' in window)
+          ? new IntersectionObserver((entries) => {
+              for (const entry of entries) {
+                if (!entry.isIntersecting) continue;
+                const eventId = entry.target.id;
+                const folder = folders.find(x => x.name === eventId);
+                if (!folder) continue;
+
+                titleObserver.unobserve(entry.target);
+                loadTitle(folder).catch((e) => console.warn('title lazy load failed:', eventId, e));
+              }
+            }, { threshold: 0.01, rootMargin: '200px 0px 200px 0px' })
+          : null;
+
         for (const f of folders) {
           const eventId = f.name;
-          const fallbackTitle = (()=>{ const d=tryFormatDateFromEventId(eventId); return `${eventId}${d?`（${d}）`:''}`; })();
+          const fallbackTitle = fallbackTitleFor(eventId);
 
           // ナビ
           const li = document.createElement('li'); li.className = 'nav-item';
@@ -305,19 +338,21 @@
           // 見出し
           addEventTitle(eventId, fallbackTitle);
 
-          // 遅延ロード項目
-          const { collapseId: guideCol } = addAccordionItem({ eventId, kind:'guide', title:'ご案内',     bodyHtml:'（開くと読み込みます）' });
+          // 見出しが見えたらタイトルだけ差し替え
+          const headingEl = byId(eventId);
+          if (headingEl && titleObserver) titleObserver.observe(headingEl);
+
+          // 本文は開いたら読み込み
+          const { collapseId: guideCol } = addAccordionItem({ eventId, kind:'guide', title:'ご案内',       bodyHtml:'（開くと読み込みます）' });
           const { collapseId: nearCol  } = addAccordionItem({ eventId, kind:'near',  title:'メンバー近況', bodyHtml:'（開くと読み込みます）' });
 
-          // ギャラリ（即）
           const galleryHtml = `
             <p class="mb-2"><a href="${CONFIG.albumBase}${encodeURIComponent(eventId)}" target="_blank" rel="noopener">アルバムへのリンク</a></p>
             <p class="mb-2"><a href="${CONFIG.slideshowBase}${encodeURIComponent(eventId)}" target="_blank" rel="noopener">スライドショーへのリンク</a></p>`;
           addAccordionItem({ eventId, kind:'gallery', title:'ギャラリ', bodyHtml: galleryHtml });
 
-          // 初回だけロード
           const handler = async () => {
-            try { await loadEvent(f); }
+            try { await loadBody(f); }
             catch (e) {
               if (e.code === 403 && CONFIG.stopOn403) {
                 setStatus(
@@ -333,35 +368,31 @@
           document.getElementById(nearCol )?.addEventListener('show.bs.collapse', handler, { once:true });
         }
 
-        // 4) 初期表示で最新イベントの見出しが画面外なら、ナビのブランド部にタイトルキャプションを表示
-        //    （見出しが見えるようになったら元の文言に戻す）
+        // 最新見出しが画面外なら navBrand にタイトルを出す（タイトルだけ取得）
         if (brandEl && firstEventId) {
           const headingEl = byId(firstEventId);
           if (headingEl && 'IntersectionObserver' in window) {
             const updateBrand = (titleText, showCaption) => {
               if (!brandEl) return;
-              if (showCaption) {
-                brandEl.textContent = titleText ? `お知らせ：${titleText}` : (BRAND_DEFAULT || 'お知らせ');
-              } else {
-                brandEl.textContent = BRAND_DEFAULT || 'お知らせ';
-              }
+              if (showCaption) brandEl.textContent = titleText ? `お知らせ：${titleText}` : (BRAND_DEFAULT || 'お知らせ');
+              else brandEl.textContent = BRAND_DEFAULT || 'お知らせ';
             };
+
             const observer = new IntersectionObserver((entries) => {
               const ent = entries[0];
               const cachedTitle = EVENT_CACHE.get(firstEventId)?.title || firstFallbackTitle;
               updateBrand(cachedTitle, !ent?.isIntersecting);
             }, { threshold: 0.01 });
+
             observer.observe(headingEl);
 
-            // タイトルキャプションを確実に反映（折りたたみ未展開でも info.json から取得）
-            loadEvent(folders[0])
+            loadTitle(folders[0])
               .then(({ title }) => {
                 const rect = headingEl.getBoundingClientRect();
                 const visible = rect.bottom > 0 && rect.top < (window.innerHeight || document.documentElement.clientHeight);
                 updateBrand(title || firstFallbackTitle, !visible);
               })
               .catch(() => {
-                // 失敗時はフォールバックのまま
                 const rect = headingEl.getBoundingClientRect();
                 const visible = rect.bottom > 0 && rect.top < (window.innerHeight || document.documentElement.clientHeight);
                 updateBrand(firstFallbackTitle, !visible);
@@ -369,8 +400,8 @@
           }
         }
 
-        // 5) 新着上位を少量先読み（体感改善）
-        prefetch(folders, 2).finally(hideStatus);
+        // タイトルだけ先読み
+        prefetchTitles(folders, 5).finally(hideStatus);
       }catch(err){
         console.error(err);
         setStatus(`エラー: ${err?.message||err}`);
