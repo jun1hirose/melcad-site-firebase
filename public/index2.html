@@ -54,13 +54,13 @@
   <!-- Header -->
   <header class="mb-2">
     <img id="headerImage" src="img/h1_mechanics_cad.jpg" alt="MELCAD友の会">
-    <h1 id="ttl1" class="text-break">MELCAD友の会（2026_0128）</h1>
+    <h1 id="ttl1" class="text-break">MELCAD友の会</h1>
   </header>
 
   <!-- Nav -->
   <nav class="navbar navbar-expand-lg navbar-dark mb-3">
-    <a id="navBrand" class="mx-2 navbar-brand" href="#">お知らせ（新着順0128）</a>
-    <button clas="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+    <a class="mx-2 navbar-brand" href="#">0128お知らせ（新着順）</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
             aria-controls="navbarNav" aria-expanded="false" aria-label="トグル">
       <span class="navbar-toggler-icon"></span>
     </button>
@@ -92,8 +92,8 @@
       rootFolderId: '1r9PCGwWZUjrbawEWTo7r4auk0xM5a-oB',    // ★Driveルート
       imgFolderName:'img',
       orderBy:      'name desc',                   // 新着順: フォルダ名降順（例 2025_0812 > 2024_0623）
-      albumBase:    '/album.html?',
-      slideshowBase:'/sldshowGallery.html?',
+      albumBase:    'https://melcad-com.an.r.appspot.com/album.html?',
+      slideshowBase:'https://melcad-com.an.r.appspot.com/sldshowGallery.html?',
       proxyBase:    '/api/drive',                  // ★本文取得用の薄いプロキシ
       stopOn403:    true                           // 403なら全体停止（falseで該当イベントのみエラー表示）
     };
@@ -102,7 +102,6 @@
     const byId = id => document.getElementById(id);
     const setStatus = msg => { const s=byId('status'); if(s) s.textContent = msg??''; };
     const hideStatus = () => { const s=byId('status'); if(s) s.style.display='none'; };
-    const BRAND_DEFAULT = (byId('navBrand')?.textContent ?? '').trim();
     function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
     function nl2brEscaped(s){return escapeHtml(String(s)).replace(/\r?\n/g,'<br>');}
     function toGuideHtml(value){
@@ -288,11 +287,6 @@
         // 3) 骨組みだけ即表示（タイトルは一旦フォルダ名で）
         const nav = byId('navList'); nav.innerHTML = '';
         const acc = byId('mainAccordion'); acc.innerHTML = '';
-        const brandEl = byId('navBrand');
-        const firstEventId = folders[0]?.name || '';
-        const firstFallbackTitle = firstEventId
-          ? (()=>{ const d=tryFormatDateFromEventId(firstEventId); return `${firstEventId}${d?`（${d}）`:''}`; })()
-          : '';
         for (const f of folders) {
           const eventId = f.name;
           const fallbackTitle = (()=>{ const d=tryFormatDateFromEventId(eventId); return `${eventId}${d?`（${d}）`:''}`; })();
@@ -333,43 +327,7 @@
           document.getElementById(nearCol )?.addEventListener('show.bs.collapse', handler, { once:true });
         }
 
-        // 4) 初期表示で最新イベントの見出しが画面外なら、ナビのブランド部にタイトルキャプションを表示
-        //    （見出しが見えるようになったら元の文言に戻す）
-        if (brandEl && firstEventId) {
-          const headingEl = byId(firstEventId);
-          if (headingEl && 'IntersectionObserver' in window) {
-            const updateBrand = (titleText, showCaption) => {
-              if (!brandEl) return;
-              if (showCaption) {
-                brandEl.textContent = titleText ? `お知らせ：${titleText}` : (BRAND_DEFAULT || 'お知らせ');
-              } else {
-                brandEl.textContent = BRAND_DEFAULT || 'お知らせ';
-              }
-            };
-            const observer = new IntersectionObserver((entries) => {
-              const ent = entries[0];
-              const cachedTitle = EVENT_CACHE.get(firstEventId)?.title || firstFallbackTitle;
-              updateBrand(cachedTitle, !ent?.isIntersecting);
-            }, { threshold: 0.01 });
-            observer.observe(headingEl);
-
-            // タイトルキャプションを確実に反映（折りたたみ未展開でも info.json から取得）
-            loadEvent(folders[0])
-              .then(({ title }) => {
-                const rect = headingEl.getBoundingClientRect();
-                const visible = rect.bottom > 0 && rect.top < (window.innerHeight || document.documentElement.clientHeight);
-                updateBrand(title || firstFallbackTitle, !visible);
-              })
-              .catch(() => {
-                // 失敗時はフォールバックのまま
-                const rect = headingEl.getBoundingClientRect();
-                const visible = rect.bottom > 0 && rect.top < (window.innerHeight || document.documentElement.clientHeight);
-                updateBrand(firstFallbackTitle, !visible);
-              });
-          }
-        }
-
-        // 5) 新着上位を少量先読み（体感改善）
+        // 4) 新着上位を少量先読み（体感改善）
         prefetch(folders, 2).finally(hideStatus);
       }catch(err){
         console.error(err);
