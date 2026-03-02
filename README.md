@@ -11,8 +11,8 @@ Ctrl + Shift + P
 GitHub: Sign in
 
 Gitユーザー設定（最初だけ）
-git config --global user.name "あなたの名前"
-git config --global user.email "github登録メール"
+git config --global user.name "jun1hirose"
+git config --global user.email "real.j.2010@gmail.com"
 
 Cursor → GitHub チェックイン手順
 
