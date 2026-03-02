@@ -15,3 +15,10 @@ git config --global user.name "あなたの名前"
 git config --global user.email "github登録メール"
 
 Cursor → GitHub チェックイン手順
+
+
+
+コミット（commit）
+Commit
+
+Push
