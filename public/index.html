@@ -46,6 +46,9 @@
     .event-title{scroll-margin-top:6rem;position:relative;display:inline-block;padding-left:.75rem;}
     .event-title::before{content:"";position:absolute;left:0;top:.2em;bottom:.2em;width:.28rem;border-radius:2px;background:var(--accent);}
     .status{color:var(--muted);text-align:center;padding:.75rem 0;white-space:pre-wrap;}
+    .youtube-banner img{width:66.666%;height:auto;}
+    .youtube-section-title{scroll-margin-top:6rem;position:relative;display:inline-block;padding-left:.75rem;}
+    .youtube-section-title::before{content:"";position:absolute;left:0;top:.2em;bottom:.2em;width:.28rem;border-radius:2px;background:#e53935;}
   </style>
 </head>
 
@@ -71,6 +74,14 @@
     <div id="mainAccordion" class="accordion"></div>
   </main>
 
+  <!-- YouTube バナーリンク -->
+  <section class="my-4 text-start youtube-banner mx-3">
+    <h3 class="youtube-section-title mt-4 mb-3">CA道の達人シリーズ動画</h3>
+    <a href="https://www.youtube.com/playlist?list=PLQX1u12_0mw1p9yZZbmzdpu6jMxwERX0e" target="_blank" rel="noopener" class="d-block">
+      <img src="img/CA道の達人 - YouTube.jpg" alt="CA道の達人 - YouTube へのリンク">
+    </a>
+  </section>
+
   <footer class="fixed-bottom text-center py-1">
     <small>&copy; MELCAD友の会. All rights reserved.</small>
   </footer>
@@ -85,8 +96,8 @@
       rootFolderId: '1r9PCGwWZUjrbawEWTo7r4auk0xM5a-oB',   // Driveルート
       imgFolderName:'img',
       orderBy:      'name desc',
-      albumBase:    'https://melcad-com.an.r.appspot.com/album.html?',
-      slideshowBase:'https://melcad-com.an.r.appspot.com/sldshowGallery.html?',
+      albumBase:    'https://melcad-com.web.app/album.html?',
+      slideshowBase:'https://melcad-com.web.app/dispGallery.html?',
       proxyDrive:   '/api/drive',       // media/export
       proxyList:    '/api/driveList',   // files.list
       stopOn403:    true

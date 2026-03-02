@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Google Drive Image Slideshow</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <style>
+        html, body { width:100%; height:100%; margin:0; padding:0; overflow:hidden; box-sizing:border-box; }
+        *, *::before, *::after { box-sizing:inherit; }
+        #slideshow { position:fixed; top:0; left:0; width:100%; height:100%; overflow:hidden; }
+        .slide { display:none; position:absolute; top:0; left:0; width:100%; height:100%; flex-direction:column; align-items:center; margin:0; padding:0; }
+        .slide.active { display:flex; }
+        .slide .img-wrap { flex:1; width:100%; min-height:0; overflow:hidden; display:flex; align-items:center; justify-content:center; margin:0; padding:0; }
+        .slide .img-wrap img { width:100%; height:100%; object-fit:cover; }
+        .slide .slide-caption { position:absolute; bottom:16px; left:0; right:0; text-align:center; margin:0; padding:0; }
+        .shotLocation, .membername { margin:0; padding:0 4px; font-size:14px; color:rgba(255,255,255,0.9); text-shadow:0 1px 2px rgba(0,0,0,0.8); }
+        @keyframes effect-zoom-in { from { transform:scale(0.92); } to { transform:scale(1.12); } }
+        .slide.active .img-wrap img.effect-zoom-in { animation: effect-zoom-in 8s ease-in-out forwards; }
+    </style>
+</head>
+<body>
+ 
+    
+<script>
+const rootFolderId = '1r9PCGwWZUjrbawEWTo7r4auk0xM5a-oB';
+const imgFolderName = 'img';
+const proxyList = '/api/driveList';
+
+function getEventNameFromUrl() {
+    const parts = window.location.search.substring(1).split('&')[0] || '';
+    return parts.includes('=') ? parts.split('=')[1] : parts;
+}
+
+function driveList(params) {
+    const u = new URL(proxyList, location.origin);
+    Object.entries(params || {}).forEach(([k, v]) => u.searchParams.set(k, v));
+    return fetch(u.toString()).then(r => {
+        if (!r.ok) throw new Error('API error: ' + r.status);
+        return r.json();
+    });
+}
+
+async function loadImagesByFolderName(memberN, eventN) {
+    const memberFolderId = await getFolderId(rootFolderId, memberN);
+    const eventFolderId = await getFolderId(memberFolderId, eventN);
+    loadImages(eventFolderId, eventN);
+}
+
+async function getFolderId(parentId, folderName) {
+    const q = `'${parentId}' in parents and name='${folderName.replace(/'/g, "\\'")}' and mimeType='application/vnd.google-apps.folder'`;
+    const data = await driveList({ q, orderBy: 'name', fields: 'files(id,name)' });
+    const files = data.files;
+    if (files && files.length > 0) return files[0].id;
+    throw new Error('フォルダが見つかりません: ' + folderName);
+}                
+
+async function loadImages(eventFolderId, eventName) {
+    const slideshow = document.getElementById('slideshow');
+    if (!slideshow) return;
+    slideshow.innerHTML = '<p class="text-muted">読み込み中...</p>';
+    try {
+        const q = `'${eventFolderId}' in parents and mimeType contains 'image/'`;
+        const data = await driveList({ q, orderBy: 'name', fields: 'files(id,name,description,createdTime)' });
+        const files = data.files || [];
+        slideshow.innerHTML = '';
+        if (files.length > 0) {
+            const effects = ['effect-zoom-in'];
+            const allcount = files.length;
+            files.forEach(function(file, i) {
+                const spnElem = document.createElement('div');
+                const imgWrap = document.createElement('div');
+                const loctElem = document.createElement('span');
+                const imgElem = document.createElement('img');
+                const memElem = document.createElement('span');
+
+                imgWrap.className = 'img-wrap';
+                imgElem.src = `https://lh3.googleusercontent.com/d/${file.id}`;
+                imgElem.alt = file.name || '';
+                imgElem.classList.add(effects[Math.floor(Math.random() * effects.length)]);
+
+                loctElem.classList.add('shotLocation');
+                loctElem.textContent = '　' + (i + 1) + '/' + allcount + '　';
+
+                memElem.classList.add('membername');
+                memElem.textContent = eventName || '';
+
+                spnElem.classList.add('slide');
+                imgWrap.appendChild(imgElem);
+                spnElem.appendChild(imgWrap);
+                const captionDiv = document.createElement('div');
+                captionDiv.className = 'slide-caption';
+                captionDiv.appendChild(loctElem);
+                captionDiv.appendChild(memElem);
+                spnElem.appendChild(captionDiv);
+
+                slideshow.appendChild(spnElem);
+            });
+            startSlideshow();
+        } else {
+            slideshow.innerHTML = '<p class="text-muted">画像が見つかりませんでした。</p>';
+        }
+    } catch (e) {
+        console.error('Failed to get file list:', e);
+        slideshow.innerHTML = '<p class="text-danger">画像の読み込みに失敗しました。(' + (e.message || '') + ')</p>';
+    }
+}
+
+function restartSlideAnimation(slideEl) {
+    const img = slideEl && slideEl.querySelector('.img-wrap img');
+    if (!img) return;
+    const effectClass = Array.from(img.classList).find(c => c.startsWith('effect-'));
+    if (effectClass) {
+        img.classList.remove(effectClass);
+        img.offsetHeight;
+        img.classList.add(effectClass);
+    }
+}
+
+function startSlideshow() {
+    const slides = document.querySelectorAll('.slide');
+    let index = 0;
+
+    function nextSlide() {
+        if (slides[index].classList.contains('active')) {
+            slides[index].classList.remove('active');
+        }
+        index = (index + 1) % slides.length;
+        slides[index].classList.add('active');
+        restartSlideAnimation(slides[index]);
+    }
+
+    slides[index].classList.add('active');
+    restartSlideAnimation(slides[index]);
+    setInterval(nextSlide, 8000);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const eventName = getEventNameFromUrl();
+    if (eventName) {
+        loadImagesByFolderName(imgFolderName, eventName);
+    } else {
+        const slideshow = document.getElementById('slideshow');
+        if (slideshow) slideshow.innerHTML = '<p class="text-danger">イベントIDが指定されていません。URLに ?2025_0621 のようにイベントIDを付けてください。</p>';
+    }
+});
+</script>
+<div id="slideshow"><!-- スライドショー画像がここに表示されます --></div>
+
+</body>
+</html>
