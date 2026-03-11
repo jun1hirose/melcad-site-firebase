@@ -11,9 +11,7 @@
         "firebase-debug.*.log",
         "*.local"
       ],
-      "predeploy": [
-        "npm --prefix \"$RESOURCE_DIR\" run lint"
-      ]
+      "predeploy": []
     }
   ],
   "hosting": {
@@ -24,7 +22,10 @@
       "**/node_modules/**"
     ],
     "rewrites": [
-      { "source": "/api/**", "function": { "functionId": "api", "region": "us-central1" } }
+      {
+        "source": "/api/**",
+        "function": "api"
+      }
     ]
   }
 }

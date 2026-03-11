@@ -22,3 +22,12 @@ Cursor → GitHub チェックイン手順
 Commit
 
 Push
+
+デプロイ手順
+npm install -g firebase-tools
+firebase --version
+firebase login
+firebase init hosting
+firebase deploy --only hosting
+
+firebase deploy --only hosting,functions

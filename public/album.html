@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <!DOCTYPE html>
 <html lang="ja">
 
@@ -115,3 +116,357 @@
 </body>
 
 </html>
+=======
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MELCAD友の会 Album1721</title>
+
+  <!-- Lightbox2 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.10.0/css/lightbox.min.css" />
+
+  <style>
+    :root{
+      --bg:#0f1117;
+      --surface:#151a21;
+      --text:#e8ecf2;
+      --muted:#9aa4b2;
+      --border:#2a3240;
+      --maxw:1100px;
+    }
+    html,body{height:100%;}
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans JP", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+    }
+    .container{
+      max-width: var(--maxw);
+      margin: 0 auto;
+      padding: 14px 14px 28px;
+    }
+    header{
+      display:flex;
+      align-items:baseline;
+      justify-content:space-between;
+      gap:12px;
+      padding: 6px 2px 12px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 12px;
+    }
+    header h1{
+      font-size: 1.05rem;
+      margin: 0;
+      font-weight: 700;
+      letter-spacing: .02em;
+    }
+    header .sub{
+      margin:0;
+      color: var(--muted);
+      font-size: .9rem;
+      white-space: nowrap;
+    }
+
+    /* Responsive tiling */
+    .gallery{
+      list-style:none;
+      padding:0;
+      margin:0;
+      display:grid;
+      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    }
+    @media (min-width: 768px){
+      .gallery{ grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+    }
+    @media (min-width: 1100px){
+      .gallery{ grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+    }
+
+    .tile{
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+      aspect-ratio: 1 / 1;
+    }
+
+    .tile a{
+      display:block;
+      width:100%;
+      height:100%;
+      text-decoration:none;
+      color:inherit;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      cursor: zoom-in;
+    }
+    .tile img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
+      transform: scale(1.01);
+      transition: transform .2s ease;
+    }
+    .tile:hover img{
+      transform: scale(1.06);
+    }
+
+    .status{
+      color: var(--muted);
+      text-align:center;
+      padding: 14px 0 10px;
+      white-space: pre-wrap;
+    }
+/* 自前スクロールロック用（position:fixed は使わない） */
+    html.scroll-locked,
+    body.scroll-locked{
+    overflow: hidden;
+    height: 100%;
+    }
+
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <h1 id="pageTitle">MELCAD友の会 Album</h1>
+      <p class="sub" id="countText"></p>
+    </header>
+
+    <div id="status" class="status">読み込み中...</div>
+    <ul id="gallery" class="gallery"></ul>
+  </div>
+
+  <!-- jQuery (Lightbox2 dependency) -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lightbox2/2.10.0/js/lightbox.min.js"></script>
+
+  <script>
+    const byId = (id) => document.getElementById(id);
+
+    function setStatus(msg) {
+      const el = byId("status");
+      if (!el) return;
+      el.textContent = msg ?? "";
+      el.style.display = msg ? "block" : "none";
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function getParams() {
+      const p = new URLSearchParams(location.search);
+      return {
+        folderId: (p.get("folderId") || "").trim(),
+        title: (p.get("title") || "").trim(),
+      };
+    }
+
+    async function driveListImages(parentId) {
+      const url = new URL("/api/drive/list", location.origin);
+      url.searchParams.set("parentId", parentId);
+
+      const res = await fetch(url.toString());
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error("LIST_FAILED " + res.status + " " + text);
+      }
+      return res.json();
+    }
+
+    function buildImageUrl(fileId) {
+      return `https://lh3.googleusercontent.com/d/${encodeURIComponent(fileId)}`;
+    }
+
+    function renderGallery(files, groupName) {
+      const ul = byId("gallery");
+      ul.innerHTML = "";
+
+      for (const f of files) {
+        const href = buildImageUrl(f.id);
+        const li = document.createElement("li");
+        li.className = "tile";
+        li.innerHTML = `
+          <a href="${href}" data-lightbox="${escapeHtml(groupName)}" data-title="">
+            <img src="${href}" alt="">
+          </a>
+        `;
+        ul.appendChild(li);
+      }
+
+      byId("countText").textContent = files.length ? `${files.length}枚` : "";
+    }
+
+ // ===== スクロールロック（position:fixed を使わない）=====
+let lockedScrollY = 0;
+let isLocked = false;
+
+function lockScroll() {
+  if (isLocked) return;
+  lockedScrollY = window.scrollY || 0;
+
+  // スクロールバー分のガタつき対策（任意だけどおすすめ）
+  const scrollBarW = window.innerWidth - document.documentElement.clientWidth;
+  if (scrollBarW > 0) document.body.style.paddingRight = `${scrollBarW}px`;
+
+  document.documentElement.classList.add("scroll-locked");
+  document.body.classList.add("scroll-locked");
+
+  // iOS対策：touchmove でスクロールさせない
+  window.addEventListener("touchmove", preventTouchMove, { passive: false });
+
+  isLocked = true;
+}
+
+function unlockScroll() {
+  if (!isLocked) return;
+
+  document.documentElement.classList.remove("scroll-locked");
+  document.body.classList.remove("scroll-locked");
+
+  document.body.style.paddingRight = "";
+  window.removeEventListener("touchmove", preventTouchMove);
+
+  isLocked = false;
+
+  // 解除後に元の位置へ戻す
+  window.scrollTo(0, lockedScrollY);
+}
+
+function preventTouchMove(e) {
+  // lightbox上での操作は許可してよいので、
+  // overlay/lightbox内なら止めない（軽い保険）
+  const t = e.target;
+  if (t && (t.closest(".lightbox") || t.closest("#lightboxOverlay"))) return;
+  e.preventDefault();
+}
+
+    // ===== Lightbox2 を安定動作にする（start/end をラップ） =====
+    function patchLightboxScroll() {
+      if (!window.lightbox || window.lightbox.__patched) return;
+
+      const lb = window.lightbox;
+      lb.__patched = true;
+
+      const origStart = lb.start.bind(lb);
+      const origEnd = lb.end.bind(lb);
+
+      lb.start = function ($link) {
+        lockScroll();
+        return origStart($link);
+      };
+
+      lb.end = function () {
+        const r = origEnd();
+        // DOM除去/フォーカス復帰の後に戻す（遅延で確実に）
+        setTimeout(unlockScroll, 0);
+        setTimeout(unlockScroll, 50);
+        return r;
+      };
+    }
+
+    // ===== クリック処理（先頭に飛ぶのを完全阻止） =====
+    function enableLightboxStableOpen() {
+      const ul = byId("gallery");
+      if (!ul || ul.dataset.lbBound === "1") return;
+      ul.dataset.lbBound = "1";
+
+      let isOpening = false;
+
+      ul.addEventListener("click", (e) => {
+        const a = e.target.closest('a[data-lightbox]');
+        if (!a) return;
+
+        // 既定動作（遷移/フォーカス移動）を完全停止
+        e.preventDefault();
+        e.stopPropagation();
+        if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+
+        if (!window.jQuery || !window.lightbox) {
+          window.open(a.href, "_blank", "noopener");
+          return;
+        }
+        if (isOpening) return;
+        isOpening = true;
+
+        try {
+          // パッチ適用済みなら start で lockScroll が走る
+          window.lightbox.start(window.jQuery(a));
+        } finally {
+          // 連打対策（少し待って解除）
+          setTimeout(() => { isOpening = false; }, 300);
+        }
+      }, true); // capture=true
+    }
+
+    // 画像ロード失敗（拡大表示できない＝実は画像が取れてない）を検知
+    function hookImageErrors() {
+      window.addEventListener("error", (e) => {
+        const t = e.target;
+        if (t && t.tagName === "IMG") {
+          console.error("[ALBUM] IMG load error:", t.src);
+        }
+      }, true);
+    }
+
+    (async function main() {
+      try {
+        hookImageErrors();
+
+        const { folderId, title } = getParams();
+        const baseTitle = title ? `MELCAD友の会 Album（${title}）` : "MELCAD友の会 Album";
+        byId("pageTitle").textContent = baseTitle;
+
+        if (!folderId) {
+          setStatus("folderId が指定されていません。\n例: album.html?folderId=xxxxx&title=2026_0130");
+          return;
+        }
+
+        setStatus("画像一覧を取得中...");
+        const json = await driveListImages(folderId);
+        let files = Array.isArray(json.files) ? json.files : [];
+        files = files.filter((x) => String(x.mimeType || "").startsWith("image/"));
+
+        if (!files.length) {
+          setStatus("画像が見つかりませんでした。");
+          renderGallery([], baseTitle);
+          return;
+        }
+
+        setStatus("");
+        renderGallery(files, baseTitle);
+
+        // Lightbox2 設定：disableScrolling は使わない（自前で lock/unlock）
+        if (window.lightbox) {
+          window.lightbox.option({
+            resizeDuration: 200,
+            wrapAround: true,
+            alwaysShowNavOnTouchDevices: true,
+            disableScrolling: false
+          });
+        }
+
+        patchLightboxScroll();
+        enableLightboxStableOpen();
+      } catch (e) {
+        console.error(e);
+        setStatus("エラー: " + (e && e.message ? e.message : String(e)));
+      }
+    })();
+  </script>
+</body>
+</html>
+>>>>>>> 20313b3 (update)
