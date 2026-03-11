@@ -1,89 +1,540 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Welcome to Firebase Hosting</title>
+<html lang="ja">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>MELCAD友の会（2026_0311）</title>
 
-    <!-- update the version number as needed -->
-    <script defer src="/__/firebase/12.10.0/firebase-app-compat.js"></script>
-    <!-- include only the Firebase features as you need -->
-    <script defer src="/__/firebase/12.10.0/firebase-auth-compat.js"></script>
-    <script defer src="/__/firebase/12.10.0/firebase-database-compat.js"></script>
-    <script defer src="/__/firebase/12.10.0/firebase-firestore-compat.js"></script>
-    <script defer src="/__/firebase/12.10.0/firebase-functions-compat.js"></script>
-    <script defer src="/__/firebase/12.10.0/firebase-messaging-compat.js"></script>
-    <script defer src="/__/firebase/12.10.0/firebase-storage-compat.js"></script>
-    <script defer src="/__/firebase/12.10.0/firebase-analytics-compat.js"></script>
-    <script defer src="/__/firebase/12.10.0/firebase-remote-config-compat.js"></script>
-    <script defer src="/__/firebase/12.10.0/firebase-performance-compat.js"></script>
-    <!-- 
-      initialize the SDK after all desired features are loaded, set useEmulator to false
-      to avoid connecting the SDK to running emulators.
-    -->
-    <script defer src="/__/firebase/init.js?useEmulator=true"></script>
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+        integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC"
+        crossorigin="anonymous"/>
 
-    <style media="screen">
-      body { background: #ECEFF1; color: rgba(0,0,0,0.87); font-family: Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; }
-      #message { background: white; max-width: 360px; margin: 100px auto 16px; padding: 32px 24px; border-radius: 3px; }
-      #message h2 { color: #ffa100; font-weight: bold; font-size: 16px; margin: 0 0 8px; }
-      #message h1 { font-size: 22px; font-weight: 300; color: rgba(0,0,0,0.6); margin: 0 0 16px;}
-      #message p { line-height: 140%; margin: 16px 0 24px; font-size: 14px; }
-      #message a { display: block; text-align: center; background: #039be5; text-transform: uppercase; text-decoration: none; color: white; padding: 16px; border-radius: 4px; }
-      #message, #message a { box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); }
-      #load { color: rgba(0,0,0,0.4); text-align: center; font-size: 13px; }
-      @media (max-width: 600px) {
-        body, #message { margin-top: 0; background: white; box-shadow: none; }
-        body { border-top: 16px solid #ffa100; }
-      }
-    </style>
-  </head>
-  <body>
-    <div id="message">
-      <h2>Welcome</h2>
-      <h1>Firebase Hosting Setup Complete</h1>
-      <p>You're seeing this because you've successfully setup Firebase Hosting. Now it's time to go build something extraordinary!</p>
-      <a target="_blank" href="https://firebase.google.com/docs/hosting/">Open Hosting Documentation</a>
+  <style>
+    :root{
+      --bg:#0f1117; --surface:#151a21; --surface-2:#1b212a;
+      --text:#e8ecf2; --muted:#9aa4b2; --border:#2a3240;
+      --accent:#64b3ff; --accent-contrast:#0b1020; --link:var(--accent);
+      --maxw:1100px;
+    }
+    body{background:var(--bg);color:var(--text);}
+    a{color:var(--link);} a:hover{opacity:.9;}
+    .container{max-width:var(--maxw);}
+    hr,.border,.accordion-item{border-color:var(--border)!important;}
+
+    header{position:relative;}
+    header img{width:100%;height:auto;display:block;}
+    header::after{
+      content:"";position:absolute;inset:0;
+      background:linear-gradient(180deg,rgba(0,0,0,.45),rgba(0,0,0,0) 30%,rgba(0,0,0,.55) 100%);
+      pointer-events:none;
+    }
+    #ttl1{position:absolute;left:1rem;bottom:.8rem;margin:0;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.6);}
+    .navbar{background:linear-gradient(90deg,var(--surface-2),var(--surface));border:1px solid var(--border);}
+    .navbar .navbar-brand{color:var(--text);}
+    .navbar .nav-link{color:var(--muted);} .navbar .nav-link:hover{color:var(--link);}
+    .accordion-item{background:var(--surface);}
+    .accordion-button{background:var(--surface);color:var(--text);border-bottom:1px solid var(--border);}
+    .accordion-button:not(.collapsed){
+      background:var(--surface-2);
+      box-shadow: inset 0 -1px 0 var(--border), 0 0 0 .15rem rgba(100,179,255,.35);
+    }
+    .accordion-button:focus{box-shadow:0 0 0 .2rem rgba(100,179,255,.45);}
+    .accordion-body{background:var(--surface);color:var(--text);}
+    footer{background:var(--surface-2)!important;color:var(--muted);border-top:1px solid var(--border);}
+    .event-title{scroll-margin-top:6rem;position:relative;display:inline-block;padding-left:.75rem;}
+    .event-title::before{content:"";position:absolute;left:0;top:.2em;bottom:.2em;width:.28rem;border-radius:2px;background:var(--accent);}
+    .status{color:var(--muted);text-align:center;padding:.75rem 0;white-space:pre-wrap;}
+
+    /* Markdown表示用 */
+    .md-body h1, .md-body h2, .md-body h3, .md-body h4, .md-body h5, .md-body h6 {
+      margin-top: 1rem;
+      margin-bottom: .75rem;
+      color: var(--text);
+    }
+    .md-body p, .md-body ul, .md-body ol, .md-body table, .md-body blockquote {
+      margin-bottom: 1rem;
+    }
+    .md-body table {
+      width: 100%;
+      border-collapse: collapse;
+      display: block;
+      overflow-x: auto;
+    }
+    .md-body th, .md-body td {
+      border: 1px solid var(--border);
+      padding: .5rem .75rem;
+      vertical-align: top;
+    }
+    .md-body th {
+      background: var(--surface-2);
+    }
+    .md-body code {
+      background: rgba(255,255,255,.08);
+      padding: .15em .35em;
+      border-radius: .25rem;
+    }
+    .md-body pre {
+      background: rgba(255,255,255,.05);
+      border: 1px solid var(--border);
+      border-radius: .5rem;
+      padding: .75rem;
+      overflow-x: auto;
+    }
+    .md-body blockquote {
+      border-left: 4px solid var(--accent);
+      padding-left: .75rem;
+      color: var(--muted);
+    }
+    .md-body input[type="checkbox"] {
+      margin-right: .4rem;
+    }
+    .md-empty {
+      color: var(--muted);
+    }
+  </style>
+</head>
+
+<body class="container">
+  <header class="mb-2">
+    <img id="headerImage" src="img/h1_mechanics_cad.jpg" alt="MELCAD友の会">
+    <h1 id="ttl1" class="text-break">MELCAD友の会</h1>
+  </header>
+
+  <nav class="navbar navbar-expand-lg navbar-dark mb-3">
+    <a id="navBrand" class="mx-2 navbar-brand" href="#">お知らせ（新着順）</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+            aria-controls="navbarNav" aria-expanded="false" aria-label="トグル">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul id="navList" class="navbar-nav ms-auto"></ul>
     </div>
-    <p id="load">Firebase SDK Loading&hellip;</p>
+  </nav>
 
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        const loadEl = document.querySelector('#load');
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
-        // // The Firebase SDK is initialized and available here!
-        //
-        // firebase.auth().onAuthStateChanged(user => { });
-        // firebase.database().ref('/path/to/ref').on('value', snapshot => { });
-        // firebase.firestore().doc('/foo/bar').get().then(() => { });
-        // firebase.functions().httpsCallable('yourFunction')().then(() => { });
-        // firebase.messaging().requestPermission().then(() => { });
-        // firebase.storage().ref('/path/to/ref').getDownloadURL().then(() => { });
-        // firebase.analytics(); // call to activate
-        // firebase.analytics().logEvent('tutorial_completed');
-        // firebase.performance(); // call to activate
-        //
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
+  <main id="content">
+    <div id="status" class="status">フォルダを探索中...</div>
+    <div id="mainAccordion" class="accordion"></div>
+  </main>
 
-        try {
-          let app = firebase.app();
-          let features = [
-            'auth', 
-            'database', 
-            'firestore',
-            'functions',
-            'messaging', 
-            'storage', 
-            'analytics', 
-            'remoteConfig',
-            'performance',
-          ].filter(feature => typeof app[feature] === 'function');
-          loadEl.textContent = `Firebase SDK loaded with ${features.join(', ')}`;
-        } catch (e) {
-          console.error(e);
-          loadEl.textContent = 'Error loading the Firebase SDK, check the console.';
+  <footer class="fixed-bottom text-center py-1">
+    <small>&copy; MELCAD友の会. All rights reserved.</small>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+          crossorigin="anonymous"></script>
+
+  <!-- GFM対応Markdownパーサ -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <script>
+    marked.setOptions({
+      gfm: true,
+      breaks: true
+    });
+
+    /* ================= 設定 ================= */
+    const CONFIG = {
+      rootFolderId: "1r9PCGwWZUjrbawEWTo7r4auk0xM5a-oB",
+      imgFolderName: "img",
+      orderBy: "name desc",
+
+      albumBase: "/album.html",
+      slideshowBase: "/sldshowGallery.html",
+
+      proxyDrive: "/api/drive",
+      proxyList: "/api/drivelist",
+      stopOn403: true,
+    };
+
+    /* =============== ユーティリティ =============== */
+    const byId = id => document.getElementById(id);
+    const setStatus = msg => { const s=byId('status'); if(s) s.textContent = msg ?? ''; };
+    const hideStatus = () => { const s=byId('status'); if(s) s.style.display='none'; };
+    const BRAND_DEFAULT = (byId('navBrand')?.textContent ?? '').trim();
+
+    function escapeHtml(s){
+      return String(s)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
+    function tryFormatDateFromEventId(id){
+      const m=/^(\d{4})_(\d{2})(\d{2})$/.exec(id);
+      return m?`${m[1]}/${m[2]}/${m[3]}`:'';
+    }
+
+    function qs(url, params){
+      const u = new URL(url, location.origin);
+      Object.entries(params||{}).forEach(([k,v])=>u.searchParams.set(k,v));
+      return u;
+    }
+
+    function fallbackTitleFor(eventId){
+      const d = tryFormatDateFromEventId(eventId);
+      return `${eventId}${d?`（${d}）`:''}`;
+    }
+
+    function normalizeSectionName(name){
+      return String(name || '').trim().toLowerCase();
+    }
+
+    function extractMdSections(mdText){
+      const tokens = marked.lexer(mdText || '');
+      const sections = {};
+      let current = null;
+
+      for (const token of tokens) {
+        if (token.type === 'heading' && token.depth === 1) {
+          current = normalizeSectionName(token.text);
+          if (!sections[current]) sections[current] = [];
+          continue;
         }
+        if (current) sections[current].push(token);
+      }
+
+      return {
+        title: marked.parser(sections.title || []).trim(),
+        guide: marked.parser(sections.guide || []).trim(),
+        update: marked.parser(sections.update || []).trim()
+      };
+    }
+
+    function htmlOrEmpty(html){
+      return html && html.trim()
+        ? `<div class="md-body">${html}</div>`
+        : `<div class="md-empty">（記載なし）</div>`;
+    }
+
+    /* ========== Drive（全部 Functions 経由） ========== */
+    async function driveList(params) {
+      const url = qs(CONFIG.proxyList, {
+        fields: "files(id,name,description,mimeType,createdTime,modifiedTime),nextPageToken",
+        ...params,
       });
-    </script>
-  </body>
+    
+      const res = await fetch(url.toString());
+    
+      if (res.status === 403) {
+        throw Object.assign(new Error("DRIVE_403_FORBIDDEN(list)"), { code: 403 });
+      }
+    
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`PROXYLIST_${res.status}: ${text}`);
+      }
+    
+      return res.json();
+    }
+
+    async function driveGetText_viaProxy(fileId){
+      const u = qs(CONFIG.proxyDrive, { fileId });
+      const r = await fetch(u.toString());
+      if (r.status===403) throw Object.assign(new Error('DRIVE_403_FORBIDDEN(media)'), { code:403 });
+      if (!r.ok) throw new Error('PROXY_'+r.status);
+      return r.text();
+    }
+
+    async function driveExportText_viaProxy(fileId, mimeType='text/plain'){
+      const u = qs(CONFIG.proxyDrive, { fileId, exportMime: mimeType });
+      const r = await fetch(u.toString());
+      if (r.status===403) throw Object.assign(new Error('DRIVE_403_FORBIDDEN(export)'), { code:403 });
+      if (!r.ok) throw new Error('PROXY_'+r.status);
+      return r.text();
+    }
+
+    async function getFolderIdExact(parentId, folderName){
+      const q = `'${parentId}' in parents and name='${folderName.replace(/'/g,"\\'")}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+      const {files=[]} = await driveList({ q, orderBy:'name' });
+      return files[0]?.id || '';
+    }
+
+    async function listSubfolders(parentId, orderBy='name desc'){
+      const q = `'${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+      const {files=[]} = await driveList({ q, orderBy });
+      return files;
+    }
+
+    async function findInfoFile(parentId){
+      const q = `'${parentId}' in parents and name='info.md' and trashed=false`;
+      const {files=[]} = await driveList({ q, orderBy:'name' });
+      return files[0] || null;
+    }
+
+    async function readInfoText(file){
+      let text='';
+      if(file.mimeType?.startsWith('application/vnd.google-apps.')){
+        text = await driveExportText_viaProxy(file.id, 'text/plain');
+      }else{
+        text = await driveGetText_viaProxy(file.id);
+      }
+      return text.replace(/^\uFEFF/,'').trim();
+    }
+
+    /* ========== 画面生成 ========== */
+    function addEventTitle(eventId, displayTitle){
+      const h3=document.createElement('h3');
+      h3.className='event-title mt-4 mx-3 mb-2 text-center';
+      h3.id=eventId;
+      h3.textContent=displayTitle;
+      byId('mainAccordion').appendChild(h3);
+    }
+
+    function addAccordionItem({ eventId, kind, title, bodyHtml }) {
+      const acc = byId('mainAccordion');
+      const item = document.createElement('div');
+      item.className = 'accordion-item';
+      const hid = `hdr-${kind}-${eventId}`;
+      const cid = `col-${kind}-${eventId}`;
+      const cnt = `cnt-${kind}-${eventId}`;
+      item.innerHTML = `
+        <h2 class="accordion-header" id="${hid}">
+          <button class="accordion-button custom-font-size collapsed" type="button"
+                  data-bs-toggle="collapse" data-bs-target="#${cid}"
+                  aria-expanded="false" aria-controls="${cid}">
+            ${escapeHtml(title)}
+          </button>
+        </h2>
+        <div id="${cid}" class="accordion-collapse collapse" data-bs-parent="#mainAccordion" aria-labelledby="${hid}">
+          <div class="accordion-body"><div class="h5" id="${cnt}">${bodyHtml || ''}</div></div>
+        </div>`;
+      acc.appendChild(item);
+      return { collapseId: cid, contentId: cnt };
+    }
+
+    const EVENT_CACHE = new Map();
+    const SPINNER = `<div class="d-flex align-items-center">
+      <div class="spinner-border spinner-border-sm me-2" role="status"></div>読み込み中...</div>`;
+
+    function updateTitleUI(eventId, titleCap) {
+      const headingEl = document.querySelector(`h3#${CSS.escape(eventId)}`);
+      if (headingEl) headingEl.innerHTML = titleCap;
+
+      const nav = byId('navList');
+      const navLink = nav
+        ? Array.from(nav.querySelectorAll('a')).find(a => a.getAttribute('href') === `#${eventId}`)
+        : null;
+      if (navLink) navLink.textContent = titleCap.replace(/<[^>]*>/g, '');
+    }
+
+    async function ensureInfo(folder) {
+      const eventId = folder.name;
+      const cached = EVENT_CACHE.get(eventId);
+      if (cached?.info) return cached;
+
+      const infoFile = await findInfoFile(folder.id);
+      if (!infoFile) throw new Error(`info.md not found in ${eventId}`);
+
+      const text = await readInfoText(infoFile);
+      const sections = extractMdSections(text);
+
+      const titleHtml = sections.title && sections.title.trim()
+        ? sections.title.trim()
+        : escapeHtml(fallbackTitleFor(eventId));
+
+      const obj = {
+        titleLoaded: false,
+        bodyLoaded: false,
+        info: sections,
+        title: titleHtml,
+        fileId: infoFile.id,
+        modifiedTime: infoFile.modifiedTime,
+      };
+      EVENT_CACHE.set(eventId, obj);
+      return obj;
+    }
+
+    async function loadTitle(folder) {
+      const eventId = folder.name;
+      const cached = EVENT_CACHE.get(eventId);
+      if (cached?.titleLoaded) return cached;
+
+      const obj = await ensureInfo(folder);
+      updateTitleUI(eventId, obj.title);
+      obj.titleLoaded = true;
+      EVENT_CACHE.set(eventId, obj);
+      return obj;
+    }
+
+    async function loadBody(folder) {
+      const eventId = folder.name;
+      const cached = EVENT_CACHE.get(eventId);
+      if (cached?.bodyLoaded) return cached;
+
+      const g = byId(`cnt-guide-${eventId}`);
+      const n = byId(`cnt-near-${eventId}`);
+      if (g) g.innerHTML = SPINNER;
+      if (n) n.innerHTML = SPINNER;
+
+      const obj = await ensureInfo(folder);
+
+      if (!obj.titleLoaded) {
+        updateTitleUI(eventId, obj.title);
+        obj.titleLoaded = true;
+      }
+
+      if (g) g.innerHTML = htmlOrEmpty(obj.info.guide);
+      if (n) n.innerHTML = htmlOrEmpty(obj.info.update);
+
+      obj.bodyLoaded = true;
+      EVENT_CACHE.set(eventId, obj);
+      return obj;
+    }
+
+    async function prefetchTitles(folders, n = 5) {
+      await Promise.allSettled(folders.slice(0, n).map(f => loadTitle(f).catch(() => {})));
+    }
+
+    /* ========== メイン ========== */
+    (async function main(){
+      try{
+        setStatus('フォルダを探索中...');
+        const imgRootId = await getFolderIdExact(CONFIG.rootFolderId, CONFIG.imgFolderName);
+        if(!imgRootId){ setStatus('img フォルダが見つかりません'); return; }
+
+        const folders = await listSubfolders(imgRootId, CONFIG.orderBy);
+        if(!folders.length){ setStatus('イベントフォルダが見つかりません'); return; }
+
+        const nav = byId('navList'); nav.innerHTML = '';
+        const acc = byId('mainAccordion'); acc.innerHTML = '';
+        const brandEl = byId('navBrand');
+
+        const firstEventId = folders[0]?.name || '';
+        const firstFallbackTitle = firstEventId ? fallbackTitleFor(firstEventId) : '';
+
+        const titleObserver = ('IntersectionObserver' in window)
+          ? new IntersectionObserver((entries) => {
+              for (const entry of entries) {
+                if (!entry.isIntersecting) continue;
+                const eventId = entry.target.id;
+                const folder = folders.find(x => x.name === eventId);
+                if (!folder) continue;
+
+                titleObserver.unobserve(entry.target);
+                loadTitle(folder).catch((e) => console.warn('title lazy load failed:', eventId, e));
+              }
+            }, { threshold: 0.01, rootMargin: '200px 0px 200px 0px' })
+          : null;
+
+        for (const f of folders) {
+          const eventId = f.name;
+          const fallbackTitle = fallbackTitleFor(eventId);
+
+          const li = document.createElement('li');
+          li.className = 'nav-item';
+          const a = document.createElement('a');
+          a.className = 'nav-link';
+          a.href = `#${eventId}`;
+          a.textContent = fallbackTitle;
+          li.appendChild(a);
+          nav.appendChild(li);
+
+          addEventTitle(eventId, fallbackTitle);
+
+          const headingEl = byId(eventId);
+          if (headingEl && titleObserver) titleObserver.observe(headingEl);
+
+          const { collapseId: guideCol } = addAccordionItem({
+            eventId,
+            kind:'guide',
+            title:'ご案内',
+            bodyHtml:'（開くと読み込みます）'
+          });
+
+          const { collapseId: nearCol } = addAccordionItem({
+            eventId,
+            kind:'near',
+            title:'近況',
+            bodyHtml:'（開くと読み込みます）'
+          });
+
+          const albumUrl = qs("/album.html", {
+            folderId: f.id,
+            title: eventId,
+          }).toString();
+
+          const slideUrl = qs(CONFIG.slideshowBase, {
+            folderId: f.id,
+            title: eventId,
+          }).toString();
+
+          const galleryHtml = `
+            <p class="mb-2">
+              <a href="${albumUrl}" target="_blank" rel="noopener">アルバムへのリンク</a>
+            </p>
+            <p class="mb-2">
+              <a href="${slideUrl}" target="_blank" rel="noopener">スライドショーへのリンク</a>
+            </p>
+          `;
+
+          addAccordionItem({
+            eventId,
+            kind: "gallery",
+            title: "ギャラリ",
+            bodyHtml: galleryHtml,
+          });
+
+          const handler = async () => {
+            try {
+              await loadBody(f);
+            } catch (e) {
+              if (e.code === 403 && CONFIG.stopOn403) {
+                setStatus(
+                  'エラー: Google Drive から 403 Forbidden が返されました。\n' +
+                  '・info.md を「リンクを知っている全員：閲覧可」に\n' +
+                  '・APIキーのHTTPリファラーに本番/localhostを追加\n' +
+                  'をご確認ください。'
+                );
+              } else {
+                console.error(e);
+              }
+            }
+          };
+
+          document.getElementById(guideCol)?.addEventListener('show.bs.collapse', handler, { once:true });
+          document.getElementById(nearCol )?.addEventListener('show.bs.collapse', handler, { once:true });
+        }
+
+        if (brandEl && firstEventId) {
+          const headingEl = byId(firstEventId);
+          if (headingEl && 'IntersectionObserver' in window) {
+            const updateBrand = (titleText, showCaption) => {
+              if (!brandEl) return;
+              const plainTitle = String(titleText || '').replace(/<[^>]*>/g, '');
+              if (showCaption) brandEl.textContent = plainTitle ? `お知らせ：${plainTitle}` : (BRAND_DEFAULT || 'お知らせ');
+              else brandEl.textContent = BRAND_DEFAULT || 'お知らせ';
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+              const ent = entries[0];
+              const cachedTitle = EVENT_CACHE.get(firstEventId)?.title || firstFallbackTitle;
+              updateBrand(cachedTitle, !ent?.isIntersecting);
+            }, { threshold: 0.01 });
+
+            observer.observe(headingEl);
+
+            loadTitle(folders[0])
+              .then(({ title }) => {
+                const rect = headingEl.getBoundingClientRect();
+                const visible = rect.bottom > 0 && rect.top < (window.innerHeight || document.documentElement.clientHeight);
+                updateBrand(title || firstFallbackTitle, !visible);
+              })
+              .catch(() => {
+                const rect = headingEl.getBoundingClientRect();
+                const visible = rect.bottom > 0 && rect.top < (window.innerHeight || document.documentElement.clientHeight);
+                updateBrand(firstFallbackTitle, !visible);
+              });
+          }
+        }
+
+        prefetchTitles(folders, 5).finally(hideStatus);
+      } catch(err) {
+        console.error(err);
+        setStatus(`エラー: ${err?.message||err}`);
+      }
+    })();
+  </script>
+</body>
 </html>
